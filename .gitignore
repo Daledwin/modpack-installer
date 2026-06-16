@@ -1,0 +1,12 @@
+# build output
+/dist/
+
+# go
+*.test
+*.out
+
+# os / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/

@@ -1,0 +1,15 @@
+{
+  "modpackName": "BLOOM Modpack",
+  "minecraftVersion": "1.21.11",
+  "fabricLoaderVersion": "",
+  "modUpdaterJarUrl": "https://REPLACE-ME.example/modupdater.jar",
+  "modUpdaterJarName": "modupdater.jar",
+  "servers": [
+    { "name": "BLOOM — Prod",    "address": "prod.REPLACE-ME.example:25565" },
+    { "name": "BLOOM — Staging", "address": "staging.REPLACE-ME.example:25565" }
+  ],
+  "profiles": [
+    { "key": "prod",    "name": "BLOOM — Prod",    "icon": "Grass",   "branch": "main" },
+    { "key": "staging", "name": "BLOOM — Staging", "icon": "Furnace", "branch": "staging" }
+  ]
+}
