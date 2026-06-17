@@ -16,7 +16,6 @@
     { "name": "BLOOM — Staging", "address": "staging.REPLACE-ME.example:25565" }
   ],
   "profiles": [
-    { "key": "prod",    "name": "BLOOM — Prod",    "icon": "Grass",   "branch": "main" },
-    { "key": "staging", "name": "BLOOM — Staging", "icon": "Furnace", "branch": "staging" }
+    { "key": "prod", "name": "BLOOM", "icon": "Grass", "branch": "main" }
   ]
 }
