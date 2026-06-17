@@ -1,3 +1,8 @@
+# real config with server addresses — NEVER commit (keep it out of the public repo).
+# Use modpack.config.example.json as the template; copy it to modpack.config.json
+# and fill in the real server addresses locally. build.sh embeds it into the binaries.
+/modpack.config.json
+
 # build output
 /dist/
 

@@ -12,8 +12,8 @@
     "fileBaseUrl": "https://raw.githubusercontent.com/Daledwin/modpack/main/"
   },
   "servers": [
-    { "name": "BLOOM — Prod",    "address": "prod.REPLACE-ME.example:25565" },
-    { "name": "BLOOM — Staging", "address": "staging.REPLACE-ME.example:25565" }
+    { "name": "BLOOM — Prod",    "address": "REPLACE-ME-prod-host:25565" },
+    { "name": "BLOOM — Staging", "address": "REPLACE-ME-staging-host:25565" }
   ],
   "profiles": [
     { "key": "prod",    "name": "BLOOM — Prod",    "icon": "Grass",   "branch": "main" },

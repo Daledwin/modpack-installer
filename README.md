@@ -34,8 +34,17 @@ fetched at install time, so nothing goes stale.
 
 ## 1. Configure
 
-Edit **`internal/config/default.json`** (baked into the binaries at build time), or ship a
-**`modpack.config.json`** next to the binary (it overrides the embedded default at runtime).
+Server addresses are **not committed** — they only ever live in a local, gitignored file that
+`build.sh` bakes into the distributed binaries, so the public repo never contains them.
+
+```bash
+cp modpack.config.example.json modpack.config.json   # gitignored
+# edit modpack.config.json: put your real server addresses
+```
+
+`build.sh` embeds `modpack.config.json` (if present) into every binary and restores the
+placeholder `internal/config/default.json` afterward — the committed source stays clean.
+At runtime a player can still override with a sibling `modpack.config.json` or `--config`.
 
 | Field | Meaning |
 |---|---|
@@ -48,7 +57,12 @@ Edit **`internal/config/default.json`** (baked into the binaries at build time),
 | `servers[]` | `{ name, address }` — added to every profile's server list. |
 | `profiles[]` | `{ key, name, icon, branch }` — one launcher profile each. |
 
-Config precedence: `--config <path>`  ›  `modpack.config.json` beside the binary  ›  embedded default.
+Config precedence: `--config <path>`  ›  `modpack.config.json` beside the binary  ›  embedded default
+(which is `modpack.config.json` at build time, else the placeholder `default.json`).
+
+> ⚠️ Never put a raw server **IP** in the repo. Prefer a **hostname/subdomain** (rotatable, and you
+> can hide the origin behind a DDoS proxy like TCPShield / Cloudflare Spectrum). Real addresses go
+> in the gitignored `modpack.config.json` only.
 
 ## 2. Build
 

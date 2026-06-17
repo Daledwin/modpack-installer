@@ -7,6 +7,20 @@ cd "$(dirname "$0")/.."
 export CGO_ENABLED=0
 mkdir -p dist
 
+# Embed the local (gitignored) real config — with the actual server addresses —
+# into the binaries, so the SOURCE keeps placeholders but the distributed binaries
+# carry the real values. The committed default.json is restored on exit.
+LOCAL_CFG="modpack.config.json"
+DEFAULT="internal/config/default.json"
+if [ -f "$LOCAL_CFG" ]; then
+  echo "Embedding $LOCAL_CFG (real config) into the binaries…"
+  cp "$DEFAULT" "$DEFAULT.bak"
+  cp "$LOCAL_CFG" "$DEFAULT"
+  trap 'mv "$DEFAULT.bak" "$DEFAULT"' EXIT
+else
+  echo "No $LOCAL_CFG found — building with placeholder default (binaries will need a sibling config)."
+fi
+
 build() {
   local goos="$1" goarch="$2" out="$3"
   GOOS="$goos" GOARCH="$goarch" go build -trimpath -ldflags "-s -w" -o "dist/$out" ./cmd/installer
