@@ -2,7 +2,7 @@
   "modpackName": "BLOOM Modpack",
   "minecraftVersion": "1.21.11",
   "fabricLoaderVersion": "",
-  "modUpdaterJarUrl": "https://REPLACE-ME.example/modupdater.jar",
+  "modUpdaterJarUrl": "https://github.com/Daledwin/modupdater/releases/download/v1.0.0/modupdater-1.0.0.jar",
   "modUpdaterJarName": "modupdater.jar",
   "baseMods": [
     { "modrinth": "fabric-api" }
