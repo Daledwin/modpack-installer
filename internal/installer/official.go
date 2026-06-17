@@ -10,7 +10,7 @@ import (
 	"modpack-installer/internal/mcpaths"
 )
 
-func installOfficial(opts Options, profileJSON []byte, versionID, loader string, modJar []byte) (*Result, error) {
+func installOfficial(opts Options, profileJSON []byte, versionID, loader string, mods []Mod) (*Result, error) {
 	cfg := opts.Cfg
 	mcDir := mcpaths.MinecraftDir()
 	slug := cfg.Slug()
@@ -60,9 +60,11 @@ func installOfficial(opts Options, profileJSON []byte, versionID, loader string,
 			if err := os.MkdirAll(modsDir, 0o755); err != nil {
 				return nil, err
 			}
-			jarPath := filepath.Join(modsDir, cfg.ModUpdaterJarName)
-			if err := os.WriteFile(jarPath, modJar, 0o644); err != nil {
-				return nil, fmt.Errorf("writing %s: %w", jarPath, err)
+			for _, m := range mods {
+				jarPath := filepath.Join(modsDir, m.Name)
+				if err := os.WriteFile(jarPath, m.Data, 0o644); err != nil {
+					return nil, fmt.Errorf("writing %s: %w", jarPath, err)
+				}
 			}
 		}
 
@@ -87,7 +89,7 @@ func installOfficial(opts Options, profileJSON []byte, versionID, loader string,
 		}
 
 		res.Profiles = append(res.Profiles, ProfileResult{
-			Key: p.Key, Name: p.Name, GameDir: gameDir, ServersAdd: added,
+			Key: p.Key, Name: p.Name, GameDir: gameDir, Mods: len(mods), ServersAdd: added,
 		})
 	}
 

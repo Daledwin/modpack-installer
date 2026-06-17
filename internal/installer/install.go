@@ -5,11 +5,14 @@ package installer
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
 
 	"modpack-installer/internal/config"
 	"modpack-installer/internal/fabric"
 	"modpack-installer/internal/httpx"
 	"modpack-installer/internal/mcpaths"
+	"modpack-installer/internal/modrinth"
 )
 
 type Options struct {
@@ -24,7 +27,15 @@ type ProfileResult struct {
 	Key        string
 	Name       string
 	GameDir    string
+	Mods       int
 	ServersAdd int
+}
+
+// Mod is a jar the installer places into each profile's mods/ folder.
+type Mod struct {
+	Name string
+	URL  string
+	Data []byte // nil on dry-run
 }
 
 type Result struct {
@@ -89,25 +100,92 @@ func Install(opts Options) (*Result, error) {
 	}
 	opts.logf("Target launcher: %s", target)
 
-	// 4. Download modupdater.jar once (skipped on dry-run).
-	var modJar []byte
-	if opts.DryRun {
-		opts.logf("[dry-run] would download modupdater from %s", cfg.ModUpdaterJarURL)
-	} else {
-		opts.logf("Downloading modupdater from %s …", cfg.ModUpdaterJarURL)
-		modJar, err = httpx.Bytes(cfg.ModUpdaterJarURL)
-		if err != nil {
-			return nil, fmt.Errorf("downloading modupdater jar: %w", err)
-		}
-		opts.logf("modupdater.jar: %d KB", len(modJar)/1024)
+	// 4. Resolve the jars the installer must place itself: modupdater plus any
+	//    bootstrap base mods (e.g. Fabric API, auto-resolved from Modrinth).
+	//    Nothing is bundled in the binary — everything is fetched at install time.
+	mods, err := resolveMods(opts, loader)
+	if err != nil {
+		return nil, err
 	}
 
 	switch target {
 	case "official":
-		return installOfficial(opts, profileJSON, versionID, loader, modJar)
+		return installOfficial(opts, profileJSON, versionID, loader, mods)
 	case "prism":
-		return installPrism(opts, versionID, loader, modJar)
+		return installPrism(opts, versionID, loader, mods)
 	default:
 		return nil, fmt.Errorf("unknown target launcher %q", target)
 	}
+}
+
+func resolveMods(opts Options, loader string) ([]Mod, error) {
+	cfg := opts.Cfg
+	specs := []Mod{{Name: cfg.ModUpdaterJarName, URL: cfg.ModUpdaterJarURL}}
+
+	for _, bm := range cfg.BaseMods {
+		var u, name string
+		switch {
+		case bm.Modrinth != "":
+			ru, fn, err := modrinth.Resolve(bm.Modrinth, cfg.MinecraftVersion, "fabric")
+			if err != nil {
+				return nil, err
+			}
+			u, name = ru, fn
+			opts.logf("Resolved %s -> %s", bm.Modrinth, fn)
+		case bm.URL != "":
+			u, name = bm.URL, lastSegment(bm.URL)
+		default:
+			return nil, fmt.Errorf("baseMod entry must set either \"modrinth\" or \"url\"")
+		}
+		if bm.Name != "" {
+			name = bm.Name
+		}
+		specs = append(specs, Mod{Name: sanitizeJar(name), URL: u})
+	}
+
+	for i := range specs {
+		if opts.DryRun {
+			opts.logf("[dry-run] would download %s", specs[i].Name)
+			continue
+		}
+		opts.logf("Downloading %s …", specs[i].Name)
+		b, err := httpx.Bytes(specs[i].URL)
+		if err != nil {
+			return nil, fmt.Errorf("downloading %s: %w", specs[i].Name, err)
+		}
+		specs[i].Data = b
+		opts.logf("  %s: %d KB", specs[i].Name, len(b)/1024)
+	}
+	return specs, nil
+}
+
+func lastSegment(u string) string {
+	s := u
+	if i := strings.IndexAny(s, "?#"); i >= 0 {
+		s = s[:i]
+	}
+	if i := strings.LastIndex(s, "/"); i >= 0 {
+		s = s[i+1:]
+	}
+	if dec, err := url.PathUnescape(s); err == nil {
+		s = dec
+	}
+	if s == "" {
+		return "mod.jar"
+	}
+	return s
+}
+
+func sanitizeJar(name string) string {
+	if i := strings.LastIndexAny(name, `/\`); i >= 0 {
+		name = name[i+1:]
+	}
+	name = strings.TrimSpace(name)
+	if name == "" {
+		name = "mod.jar"
+	}
+	if !strings.HasSuffix(strings.ToLower(name), ".jar") {
+		name += ".jar"
+	}
+	return name
 }

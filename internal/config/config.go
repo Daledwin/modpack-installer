@@ -30,12 +30,22 @@ type Profile struct {
 	Branch string `json:"branch"` // informational (modupdater handles the sync)
 }
 
+// BaseMod is a mod the installer must place itself (bootstrap mods like Fabric API
+// that modupdater needs to even start). Provide either a direct URL or a Modrinth
+// project slug that is auto-resolved for the configured Minecraft version.
+type BaseMod struct {
+	Name     string `json:"name"`     // optional filename override
+	URL      string `json:"url"`      // direct .jar URL (alternative to modrinth)
+	Modrinth string `json:"modrinth"` // Modrinth project slug, e.g. "fabric-api"
+}
+
 type Config struct {
 	ModpackName         string    `json:"modpackName"`
 	MinecraftVersion    string    `json:"minecraftVersion"`
 	FabricLoaderVersion string    `json:"fabricLoaderVersion"` // "" = latest stable
 	ModUpdaterJarURL    string    `json:"modUpdaterJarUrl"`
 	ModUpdaterJarName   string    `json:"modUpdaterJarName"`
+	BaseMods            []BaseMod `json:"baseMods"` // bootstrap mods (e.g. Fabric API)
 	Servers             []Server  `json:"servers"`
 	Profiles            []Profile `json:"profiles"`
 }
@@ -112,6 +122,11 @@ func (c *Config) Placeholders() []string {
 	for _, s := range c.Servers {
 		if strings.Contains(s.Address, "REPLACE-ME") {
 			out = append(out, "server address: "+s.Name)
+		}
+	}
+	for _, b := range c.BaseMods {
+		if b.Modrinth == "" && strings.Contains(b.URL, "REPLACE-ME") {
+			out = append(out, "baseMod url: "+b.Name)
 		}
 	}
 	return out

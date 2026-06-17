@@ -101,7 +101,7 @@ func main() {
 		fmt.Printf("  ✓ Installed via the %s launcher.\n", res.Target)
 	}
 	for _, p := range res.Profiles {
-		fmt.Printf("    • %-22s  %s  (+%d server(s))\n", p.Name, p.GameDir, p.ServersAdd)
+		fmt.Printf("    • %-20s  %d mod(s), +%d server(s)\n      %s\n", p.Name, p.Mods, p.ServersAdd, p.GameDir)
 	}
 	fmt.Println()
 	fmt.Printf("  Next: open your launcher, pick the profile \"%s\", and play.\n", firstProfileName(res, cfg))

@@ -13,8 +13,10 @@ detect launcher ─▶ install Fabric (no Java needed) ─▶ drop modupdater.ja
 ```
 
 After install, the player just opens their launcher, picks the **Prod** (or **Staging**) profile,
-and plays — **modupdater syncs all the other mods on first launch**. The only coupling with
-modupdater is that the installer drops its `.jar` into the profile's `mods/` folder.
+and plays — **modupdater syncs all the other mods on first launch**. The installer only places the
+**bootstrap** jars modupdater needs to run: `modupdater.jar` itself and **Fabric API** (auto-resolved
+from Modrinth for the configured MC version). **No jar is bundled in the binary** — everything is
+fetched at install time, so nothing goes stale.
 
 ---
 
@@ -42,6 +44,7 @@ Edit **`internal/config/default.json`** (baked into the binaries at build time),
 | `fabricLoaderVersion` | empty = latest stable for that MC version. |
 | `modUpdaterJarUrl` | **direct URL** to your `modupdater.jar` (the installer downloads it). |
 | `modUpdaterJarName` | filename written into `mods/` (default `modupdater.jar`). |
+| `baseMods[]` | bootstrap mods placed by the installer (e.g. Fabric API, which modupdater needs to start). Each entry is `{ "modrinth": "<slug>" }` (auto-resolved for the MC version) **or** `{ "url": "...", "name": "..." }`. |
 | `servers[]` | `{ name, address }` — added to every profile's server list. |
 | `profiles[]` | `{ key, name, icon, branch }` — one launcher profile each. |
 

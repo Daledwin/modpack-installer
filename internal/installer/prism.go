@@ -12,7 +12,7 @@ import (
 // installPrism creates one Prism instance per modpack profile. Prism resolves
 // the Fabric loader (and intermediary mappings) itself from mmc-pack.json, so we
 // only declare the components — no Fabric profile JSON needed here.
-func installPrism(opts Options, versionID, loader string, modJar []byte) (*Result, error) {
+func installPrism(opts Options, versionID, loader string, mods []Mod) (*Result, error) {
 	cfg := opts.Cfg
 	instancesDir := mcpaths.PrismInstancesDir()
 	slug := cfg.Slug()
@@ -54,9 +54,11 @@ func installPrism(opts Options, versionID, loader string, modJar []byte) (*Resul
 			if err := os.WriteFile(filepath.Join(instDir, "instance.cfg"), []byte(cfgIni), 0o644); err != nil {
 				return nil, err
 			}
-			// modupdater.jar
-			if err := os.WriteFile(filepath.Join(modsDir, cfg.ModUpdaterJarName), modJar, 0o644); err != nil {
-				return nil, err
+			// modupdater + base mods (e.g. Fabric API)
+			for _, m := range mods {
+				if err := os.WriteFile(filepath.Join(modsDir, m.Name), m.Data, 0o644); err != nil {
+					return nil, err
+				}
 			}
 		}
 
@@ -66,7 +68,7 @@ func installPrism(opts Options, versionID, loader string, modJar []byte) (*Resul
 		}
 
 		res.Profiles = append(res.Profiles, ProfileResult{
-			Key: p.Key, Name: p.Name, GameDir: dotMC, ServersAdd: added,
+			Key: p.Key, Name: p.Name, GameDir: dotMC, Mods: len(mods), ServersAdd: added,
 		})
 	}
 	return res, nil

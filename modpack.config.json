@@ -4,6 +4,9 @@
   "fabricLoaderVersion": "",
   "modUpdaterJarUrl": "https://REPLACE-ME.example/modupdater.jar",
   "modUpdaterJarName": "modupdater.jar",
+  "baseMods": [
+    { "modrinth": "fabric-api" }
+  ],
   "servers": [
     { "name": "BLOOM — Prod",    "address": "prod.REPLACE-ME.example:25565" },
     { "name": "BLOOM — Staging", "address": "staging.REPLACE-ME.example:25565" }
