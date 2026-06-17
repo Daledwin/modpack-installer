@@ -59,8 +59,9 @@ func main() {
 		fmt.Println()
 	}
 
-	if detected == "none" && (target == "auto" || target == "") {
-		fatal(fmt.Errorf("no launcher found — install the official Minecraft launcher or Prism first"))
+	if detected == "none" && target != "official" {
+		fmt.Println("  ⚠ No launcher detected — a portable Prism Launcher will be downloaded and set up for you.")
+		fmt.Println()
 	}
 
 	if !yes && !dryRun {
@@ -104,7 +105,15 @@ func main() {
 		fmt.Printf("    • %-20s  %d mod(s), +%d server(s)\n      %s\n", p.Name, p.Mods, p.ServersAdd, p.GameDir)
 	}
 	fmt.Println()
-	fmt.Printf("  Next: open your launcher, pick the profile \"%s\", and play.\n", firstProfileName(res, cfg))
+	if res.PrismLaunch != "" {
+		fmt.Println("  Prism Launcher was installed for you. Start it with:")
+		fmt.Printf("    %s\n", res.PrismLaunch)
+		fmt.Printf("  Then launch the \"%s\" instance.\n", firstProfileName(res, cfg))
+	} else if res.Target == "prism" {
+		fmt.Printf("  Next: open Prism Launcher and launch the \"%s\" instance.\n", firstProfileName(res, cfg))
+	} else {
+		fmt.Printf("  Next: open your launcher, pick the profile \"%s\", and play.\n", firstProfileName(res, cfg))
+	}
 	fmt.Println("  modupdater will sync the rest of the mods on first launch.")
 	pauseOnWindows()
 }

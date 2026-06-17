@@ -12,9 +12,13 @@ import (
 // installPrism creates one Prism instance per modpack profile. Prism resolves
 // the Fabric loader (and intermediary mappings) itself from mmc-pack.json, so we
 // only declare the components — no Fabric profile JSON needed here.
-func installPrism(opts Options, versionID, loader string, mods []Mod) (*Result, error) {
+// instancesDir, when non-empty, overrides Prism's detected instances directory
+// (used for a freshly auto-installed portable Prism).
+func installPrism(opts Options, versionID, loader string, mods []Mod, instancesDir string) (*Result, error) {
 	cfg := opts.Cfg
-	instancesDir := mcpaths.PrismInstancesDir()
+	if instancesDir == "" {
+		instancesDir = mcpaths.PrismInstancesDir()
+	}
 	slug := cfg.Slug()
 
 	res := &Result{

@@ -48,6 +48,15 @@ type Modpack struct {
 	FileBaseURL string `json:"fileBaseUrl"` // prefix joined with each entry's "file"
 }
 
+// Prism configures the optional auto-install of a portable Prism Launcher when
+// no launcher is found. All fields are optional: empty repo/version means the
+// latest official PrismLauncher release; assetUrl forces a specific download.
+type Prism struct {
+	Repo     string `json:"repo"`     // "owner/name"; "" = PrismLauncher/PrismLauncher
+	Version  string `json:"version"`  // release tag to pin; "" = latest
+	AssetURL string `json:"assetUrl"` // direct portable-build URL override (this OS)
+}
+
 type Config struct {
 	ModpackName         string    `json:"modpackName"`
 	MinecraftVersion    string    `json:"minecraftVersion"`
@@ -58,6 +67,7 @@ type Config struct {
 	Modpack             Modpack   `json:"modpack"`  // optional pre-sync from index.json
 	Servers             []Server  `json:"servers"`
 	Profiles            []Profile `json:"profiles"`
+	Prism               Prism     `json:"prism"` // optional portable-Prism auto-install
 }
 
 // Load resolves the config from the flag path, a sibling file, or the embedded default.
