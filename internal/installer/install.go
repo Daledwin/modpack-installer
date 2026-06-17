@@ -15,6 +15,7 @@ import (
 	"modpack-installer/internal/mcpaths"
 	"modpack-installer/internal/modpackindex"
 	"modpack-installer/internal/modrinth"
+	"modpack-installer/internal/prismget"
 )
 
 type Options struct {
@@ -47,6 +48,7 @@ type Result struct {
 	LoaderVersion string
 	VersionID     string
 	Profiles      []ProfileResult
+	PrismLaunch   string // set when we auto-installed a portable Prism: path to launch
 }
 
 func (o Options) logf(format string, a ...any) {
@@ -90,15 +92,40 @@ func Install(opts Options) (*Result, error) {
 	}
 	opts.logf("Fabric version id: %s", versionID)
 
-	// 3. Choose the target launcher.
+	// 3. Choose the target launcher. When no launcher exists (auto), or Prism is
+	//    explicitly requested but absent, download a self-contained portable Prism.
 	target := opts.Target
-	if target == "" || target == "auto" {
-		if mcpaths.OfficialInstalled() {
+	prismInstances := "" // non-empty = write the instance here (portable Prism)
+	prismLaunch := ""    // path the user opens to start the portable Prism
+	ensurePrism := func() error {
+		pr, err := prismget.EnsurePortable(cfg.Prism.Repo, cfg.Prism.Version, cfg.Prism.AssetURL, opts.DryRun, opts.logf)
+		if err != nil {
+			return err
+		}
+		prismInstances, prismLaunch = pr.InstancesDir, pr.LaunchPath
+		return nil
+	}
+
+	switch {
+	case target == "" || target == "auto":
+		switch {
+		case mcpaths.OfficialInstalled():
 			target = "official"
-		} else if mcpaths.PrismInstalled() {
+		case mcpaths.PrismInstalled():
 			target = "prism"
-		} else {
-			return nil, fmt.Errorf("no launcher found: neither the official Minecraft launcher (%s) nor Prism (%s) is installed", mcpaths.MinecraftDir(), mcpaths.PrismInstancesDir())
+		default:
+			opts.logf("No launcher detected — installing a portable Prism Launcher…")
+			if err := ensurePrism(); err != nil {
+				return nil, err
+			}
+			target = "prism"
+		}
+	case target == "prism":
+		if !mcpaths.PrismInstalled() {
+			opts.logf("Prism not detected — installing a portable Prism Launcher…")
+			if err := ensurePrism(); err != nil {
+				return nil, err
+			}
 		}
 	}
 	opts.logf("Target launcher: %s", target)
@@ -115,7 +142,11 @@ func Install(opts Options) (*Result, error) {
 	case "official":
 		return installOfficial(opts, profileJSON, versionID, loader, mods)
 	case "prism":
-		return installPrism(opts, versionID, loader, mods)
+		res, err := installPrism(opts, versionID, loader, mods, prismInstances)
+		if err == nil && res != nil {
+			res.PrismLaunch = prismLaunch
+		}
+		return res, err
 	default:
 		return nil, fmt.Errorf("unknown target launcher %q", target)
 	}

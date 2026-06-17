@@ -81,6 +81,17 @@ func PrismInstalled() bool {
 	return prismDataDir() != ""
 }
 
+// PortablePrismDir returns the folder where the installer drops a self-contained,
+// portable Prism when no launcher is present. On Linux/Windows it doubles as
+// Prism's data root (portable mode); on macOS it just holds the extracted .app.
+func PortablePrismDir() string {
+	home, _ := os.UserHomeDir()
+	if runtime.GOOS == "darwin" {
+		return filepath.Join(home, "Applications")
+	}
+	return filepath.Join(home, "PrismLauncher")
+}
+
 // PrismInstancesDir returns Prism's instances directory (detected, else the default).
 func PrismInstancesDir() string {
 	d := prismDataDir()
