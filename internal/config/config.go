@@ -39,6 +39,15 @@ type BaseMod struct {
 	Modrinth string `json:"modrinth"` // Modrinth project slug, e.g. "fabric-api"
 }
 
+// Modpack configures the optional pre-sync: downloading the client mod set from
+// the modpack repo's index.json at install time (so the first launch is instant).
+// The client has a single mods/ folder, so this uses ONE source branch (main) for
+// all profiles — staging/prod differ only by which server you join, not the mods.
+type Modpack struct {
+	IndexURL    string `json:"indexUrl"`    // GET index.json (empty = pre-sync off)
+	FileBaseURL string `json:"fileBaseUrl"` // prefix joined with each entry's "file"
+}
+
 type Config struct {
 	ModpackName         string    `json:"modpackName"`
 	MinecraftVersion    string    `json:"minecraftVersion"`
@@ -46,6 +55,7 @@ type Config struct {
 	ModUpdaterJarURL    string    `json:"modUpdaterJarUrl"`
 	ModUpdaterJarName   string    `json:"modUpdaterJarName"`
 	BaseMods            []BaseMod `json:"baseMods"` // bootstrap mods (e.g. Fabric API)
+	Modpack             Modpack   `json:"modpack"`  // optional pre-sync from index.json
 	Servers             []Server  `json:"servers"`
 	Profiles            []Profile `json:"profiles"`
 }

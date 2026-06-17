@@ -70,7 +70,7 @@ type decoder struct {
 }
 
 func (d *decoder) need(n int) error {
-	if d.i+n > len(d.b) {
+	if n < 0 || d.i+n > len(d.b) {
 		return io.ErrUnexpectedEOF
 	}
 	return nil
@@ -160,6 +160,9 @@ func (d *decoder) payload(id byte) (any, error) {
 			return nil, err
 		}
 		n := int(int32(binary.BigEndian.Uint32(b)))
+		if n < 0 {
+			return nil, fmt.Errorf("nbt: negative int-array length %d", n)
+		}
 		arr := make([]int32, n)
 		for k := 0; k < n; k++ {
 			e, err := d.read(4)
@@ -175,6 +178,9 @@ func (d *decoder) payload(id byte) (any, error) {
 			return nil, err
 		}
 		n := int(int32(binary.BigEndian.Uint32(b)))
+		if n < 0 {
+			return nil, fmt.Errorf("nbt: negative long-array length %d", n)
+		}
 		arr := make([]int64, n)
 		for k := 0; k < n; k++ {
 			e, err := d.read(8)
@@ -194,6 +200,9 @@ func (d *decoder) payload(id byte) (any, error) {
 			return nil, err
 		}
 		n := int(int32(binary.BigEndian.Uint32(b)))
+		if n < 0 {
+			return nil, fmt.Errorf("nbt: negative list length %d", n)
+		}
 		lst := &List{ElemType: et, Items: make([]any, 0, n)}
 		for k := 0; k < n; k++ {
 			v, err := d.payload(et)

@@ -1,17 +1,21 @@
 package installer
 
 import (
+	"path/filepath"
+
 	"modpack-installer/internal/config"
 	"modpack-installer/internal/nbt"
 )
 
 // mergeServers adds the configured servers to a servers.dat, preserving any
 // servers (and their tags) already present. Returns how many were newly added.
-func mergeServers(path string, servers []config.Server, dryRun bool) (int, error) {
+func mergeServers(path string, servers []config.Server, dryRun bool, logf func(string, ...any)) (int, error) {
 	root, err := nbt.ReadFile(path)
 	if err != nil {
-		// Corrupt/unreadable: start fresh rather than fail the whole install.
-		root = &nbt.Compound{}
+		// The file exists but cannot be parsed. Overwriting it would destroy the
+		// player's existing server list, so we leave it untouched and skip pre-fill.
+		logf("⚠ existing %s is unreadable — leaving it as-is, skipping server pre-fill", filepath.Base(path))
+		return 0, nil
 	}
 
 	var lst *nbt.List

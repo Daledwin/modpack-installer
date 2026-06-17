@@ -57,6 +57,26 @@ func TestRoundTripServers(t *testing.T) {
 	}
 }
 
+func TestDecodeCorruptNegativeLengthNoPanic(t *testing.T) {
+	// A root compound containing a byte-array tag with a negative (0xFFFFFFFB)
+	// length must return an error, not panic with a slice-bounds crash.
+	blob := []byte{
+		TagCompound,    // root tag
+		0x00, 0x00,     // root name "" (len 0)
+		TagByteArray,   // a named tag inside the compound
+		0x00, 0x01, 'x', // name "x" (len 1)
+		0xFF, 0xFF, 0xFF, 0xFB, // length = -5
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("Decode panicked on corrupt input: %v", r)
+		}
+	}()
+	if _, err := Decode(blob); err == nil {
+		t.Fatal("expected an error decoding corrupt NBT, got nil")
+	}
+}
+
 func TestDecodeEmpty(t *testing.T) {
 	// Encoding an empty root then decoding should yield an empty compound.
 	enc, err := Encode(&Compound{})

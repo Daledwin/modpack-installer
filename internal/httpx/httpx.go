@@ -11,7 +11,21 @@ import (
 
 const maxBytes = 256 << 20 // 256 MB
 
-var client = &http.Client{Timeout: 120 * time.Second}
+var client = &http.Client{
+	Timeout: 120 * time.Second,
+	// Cap redirects and refuse an HTTPS -> HTTP downgrade (a redirect must not
+	// drop us onto plaintext, since some downloads — e.g. modupdater.jar — are
+	// executed code fetched without a sha check).
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 10 {
+			return fmt.Errorf("stopped after 10 redirects")
+		}
+		if len(via) > 0 && via[0].URL.Scheme == "https" && req.URL.Scheme != "https" {
+			return fmt.Errorf("refusing insecure redirect to %s://%s", req.URL.Scheme, req.URL.Host)
+		}
+		return nil
+	},
+}
 
 // Bytes fetches a URL and returns its body, erroring on non-200 / oversize.
 func Bytes(url string) ([]byte, error) {

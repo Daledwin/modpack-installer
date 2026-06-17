@@ -19,4 +19,14 @@ build linux   amd64 "installer-linux-amd64"
 build linux   arm64 "installer-linux-arm64"
 build darwin  amd64 "installer-macos-intel"
 build darwin  arm64 "installer-macos-apple-silicon"
-echo "Done. Distribute ./dist plus install.sh / install.command (and modpack.config.json if not embedded)."
+
+# Bundle the Linux/macOS pieces as a tar.gz — unlike a zip, tar preserves the
+# executable bit, so install.sh / install.command stay runnable after transfer.
+echo "Packaging unix bundle…"
+tar -czf dist/modpack-installer-unix.tar.gz \
+  install.sh install.command modpack.config.json \
+  dist/installer-linux-amd64 dist/installer-linux-arm64 \
+  dist/installer-macos-intel dist/installer-macos-apple-silicon
+echo "  ✓ dist/modpack-installer-unix.tar.gz"
+
+echo "Done. Windows: ship dist/installer-windows-amd64.exe. Linux/macOS: ship the tar.gz."

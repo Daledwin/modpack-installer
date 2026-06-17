@@ -96,10 +96,17 @@ Try a safe preview first:
 * **modupdater** is treated as a black box — the installer only places its jar. How it discovers the
   repo/branch is modupdater's concern.
 * The **official launcher** path is the primary, fully-tested one. **Prism** support creates an
-  instance via `mmc-pack.json` (Prism resolves the loader) — verify on your Prism version.
-* macOS/Windows binaries are **unsigned** — expect a Gatekeeper / SmartScreen prompt. Sign them for
-  a smoother rollout if you distribute widely.
-* `servers.dat` is written as uncompressed NBT and **merged** with any servers already present.
+  instance via `mmc-pack.json` (Prism resolves the loader); detection covers native, XDG and
+  **Flatpak** (`~/.var/app/org.prismlauncher.PrismLauncher`) installs. Auto mode only treats the
+  official launcher as present when `launcher_profiles.json`/`versions/` exists, so a bare leftover
+  `.minecraft` won't shadow Prism.
+* macOS/Windows binaries are **unsigned**. `install.sh`/`install.command` auto-clear the macOS
+  quarantine attribute before launching, but for a wide rollout you should codesign + notarize
+  (macOS) / sign (Windows) to avoid Gatekeeper / SmartScreen prompts.
+* **Distribute Linux/macOS as the `tar.gz`** produced by `build.sh` (a plain zip drops the exec bit).
+  Ship the Windows `.exe` on its own.
+* `servers.dat` is uncompressed NBT and **merged** with existing servers; an unreadable
+  `servers.dat` or `launcher_profiles.json` is **left untouched** (never clobbered).
 
 ## Tests
 

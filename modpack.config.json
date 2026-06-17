@@ -7,6 +7,10 @@
   "baseMods": [
     { "modrinth": "fabric-api" }
   ],
+  "modpack": {
+    "indexUrl": "https://raw.githubusercontent.com/Daledwin/modpack/main/index.json",
+    "fileBaseUrl": "https://raw.githubusercontent.com/Daledwin/modpack/main/"
+  },
   "servers": [
     { "name": "BLOOM — Prod",    "address": "prod.REPLACE-ME.example:25565" },
     { "name": "BLOOM — Staging", "address": "staging.REPLACE-ME.example:25565" }

@@ -4,6 +4,7 @@
 package installer
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"net/url"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"modpack-installer/internal/fabric"
 	"modpack-installer/internal/httpx"
 	"modpack-installer/internal/mcpaths"
+	"modpack-installer/internal/modpackindex"
 	"modpack-installer/internal/modrinth"
 )
 
@@ -35,6 +37,7 @@ type ProfileResult struct {
 type Mod struct {
 	Name string
 	URL  string
+	Sha  string // expected sha256 (lowercase hex); "" = no check
 	Data []byte // nil on dry-run
 }
 
@@ -120,12 +123,47 @@ func Install(opts Options) (*Result, error) {
 
 func resolveMods(opts Options, loader string) ([]Mod, error) {
 	cfg := opts.Cfg
-	specs := []Mod{{Name: cfg.ModUpdaterJarName, URL: cfg.ModUpdaterJarURL}}
+	var specs []Mod
+	seen := map[string]bool{}
+	add := func(m Mod) {
+		if m.Name == "" || seen[m.Name] {
+			return
+		}
+		seen[m.Name] = true
+		specs = append(specs, m)
+	}
 
+	// 1. modupdater (always; it is not part of the index — it's the syncer).
+	add(Mod{Name: cfg.ModUpdaterJarName, URL: cfg.ModUpdaterJarURL})
+
+	// 2. Pre-sync the client mod set from index.json (single source branch).
+	presyncIDs := map[string]bool{}
+	if cfg.Modpack.IndexURL != "" {
+		idx, err := modpackindex.Fetch(cfg.Modpack.IndexURL)
+		if err != nil {
+			return nil, err
+		}
+		client := idx.ClientMods()
+		opts.logf("Modpack index: %d client mod(s) to pre-sync", len(client))
+		for _, e := range client {
+			presyncIDs[strings.ToLower(e.ID)] = true
+			add(Mod{
+				Name: sanitizeJar(e.File),
+				URL:  joinURL(cfg.Modpack.FileBaseURL, e.File),
+				Sha:  strings.ToLower(e.Sha256),
+			})
+		}
+	}
+
+	// 3. Bootstrap base mods (e.g. Fabric API) — skip any the index already covers.
 	for _, bm := range cfg.BaseMods {
 		var u, name string
 		switch {
 		case bm.Modrinth != "":
+			if indexCovers(presyncIDs, bm.Modrinth) {
+				opts.logf("Skipping bootstrap %s — already in the modpack index", bm.Modrinth)
+				continue
+			}
 			ru, fn, err := modrinth.Resolve(bm.Modrinth, cfg.MinecraftVersion, "fabric")
 			if err != nil {
 				return nil, err
@@ -140,9 +178,10 @@ func resolveMods(opts Options, loader string) ([]Mod, error) {
 		if bm.Name != "" {
 			name = bm.Name
 		}
-		specs = append(specs, Mod{Name: sanitizeJar(name), URL: u})
+		add(Mod{Name: sanitizeJar(name), URL: u})
 	}
 
+	// 4. Download (skipped on dry-run) and verify sha256 where the index provides it.
 	for i := range specs {
 		if opts.DryRun {
 			opts.logf("[dry-run] would download %s", specs[i].Name)
@@ -153,10 +192,50 @@ func resolveMods(opts Options, loader string) ([]Mod, error) {
 		if err != nil {
 			return nil, fmt.Errorf("downloading %s: %w", specs[i].Name, err)
 		}
+		if specs[i].Sha != "" {
+			got := fmt.Sprintf("%x", sha256.Sum256(b))
+			if got != specs[i].Sha {
+				return nil, fmt.Errorf("sha256 mismatch for %s: expected %s, got %s", specs[i].Name, specs[i].Sha, got)
+			}
+		}
 		specs[i].Data = b
-		opts.logf("  %s: %d KB", specs[i].Name, len(b)/1024)
+		note := ""
+		if specs[i].Sha != "" {
+			note = " (sha256 ✓)"
+		}
+		opts.logf("  %s: %d KB%s", specs[i].Name, len(b)/1024, note)
 	}
 	return specs, nil
+}
+
+// bootstrapAliases maps a Modrinth slug to the Fabric mod id(s) it may appear as
+// in index.json, so a bootstrap mod isn't installed twice under a different id
+// (two Fabric API jars in one mods/ folder = a hard startup crash).
+var bootstrapAliases = map[string][]string{
+	"fabric-api": {"fabric-api", "fabric", "fabricapi"},
+}
+
+// indexCovers reports whether the pre-synced index already provides the mod a
+// bootstrap Modrinth slug refers to (case-insensitive, alias-aware).
+func indexCovers(presyncIDs map[string]bool, slug string) bool {
+	s := strings.ToLower(slug)
+	candidates := append([]string{s}, bootstrapAliases[s]...)
+	for _, c := range candidates {
+		if presyncIDs[strings.ToLower(c)] {
+			return true
+		}
+	}
+	return false
+}
+
+func joinURL(base, file string) string {
+	if base == "" {
+		return file
+	}
+	if !strings.HasSuffix(base, "/") {
+		base += "/"
+	}
+	return base + file
 }
 
 func lastSegment(u string) string {

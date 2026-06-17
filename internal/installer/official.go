@@ -39,7 +39,13 @@ func installOfficial(opts Options, profileJSON []byte, versionID, loader string,
 	lpPath := filepath.Join(mcDir, "launcher_profiles.json")
 	root := map[string]any{}
 	if b, err := os.ReadFile(lpPath); err == nil {
-		_ = json.Unmarshal(b, &root)
+		// File exists: it MUST parse, otherwise overwriting it would wipe the
+		// player's launcher profiles and accounts. Abort with a clear message.
+		if uerr := json.Unmarshal(b, &root); uerr != nil {
+			return nil, fmt.Errorf(
+				"existing launcher_profiles.json is present but unparseable (%v); refusing to overwrite it — fix or remove %s, then retry",
+				uerr, lpPath)
+		}
 	}
 	profiles, _ := root["profiles"].(map[string]any)
 	if profiles == nil {
@@ -68,7 +74,7 @@ func installOfficial(opts Options, profileJSON []byte, versionID, loader string,
 			}
 		}
 
-		added, err := mergeServers(filepath.Join(gameDir, "servers.dat"), cfg.Servers, opts.DryRun)
+		added, err := mergeServers(filepath.Join(gameDir, "servers.dat"), cfg.Servers, opts.DryRun, opts.logf)
 		if err != nil {
 			return nil, err
 		}

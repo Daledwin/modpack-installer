@@ -62,7 +62,7 @@ func installPrism(opts Options, versionID, loader string, mods []Mod) (*Result, 
 			}
 		}
 
-		added, err := mergeServers(filepath.Join(dotMC, "servers.dat"), cfg.Servers, opts.DryRun)
+		added, err := mergeServers(filepath.Join(dotMC, "servers.dat"), cfg.Servers, opts.DryRun, opts.logf)
 		if err != nil {
 			return nil, err
 		}
