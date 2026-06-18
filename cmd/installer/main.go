@@ -59,12 +59,37 @@ func main() {
 		fmt.Println()
 	}
 
-	if detected == "none" && target != "official" {
-		fmt.Println("  ⚠ No launcher detected — a portable Prism Launcher will be downloaded and set up for you.")
-		fmt.Println()
+	// No launcher present: let the user pick (interactive only). An explicit
+	// -launcher is always honoured; -y / -dry-run default to the one we can
+	// install ourselves (Prism), since they can't answer a prompt.
+	menuConsent := false
+	if detected == "none" {
+		switch {
+		case target == "official":
+			guideOfficialInstall()
+			return
+		case target == "prism":
+			fmt.Println("  ⚠ No launcher detected — a portable Prism Launcher will be installed.")
+			fmt.Println()
+		case yes || dryRun:
+			fmt.Println("  ⚠ No launcher detected — a portable Prism Launcher will be installed.")
+			fmt.Println()
+			target = "prism"
+		default:
+			switch promptLauncherChoice() {
+			case "prism":
+				target, menuConsent = "prism", true
+			case "official":
+				guideOfficialInstall()
+				return
+			default:
+				fmt.Println("  Aborted.")
+				return
+			}
+		}
 	}
 
-	if !yes && !dryRun {
+	if !yes && !dryRun && !menuConsent {
 		fmt.Print("  Proceed with installation? [y/N] ")
 		r := bufio.NewReader(os.Stdin)
 		line, _ := r.ReadString('\n')
@@ -115,6 +140,42 @@ func main() {
 		fmt.Printf("  Next: open your launcher, pick the profile \"%s\", and play.\n", firstProfileName(res, cfg))
 	}
 	fmt.Println("  modupdater will sync the rest of the mods on first launch.")
+	pauseOnWindows()
+}
+
+// promptLauncherChoice asks the user which launcher to set up when none exists.
+// Returns "prism", "official", or "" (abort).
+func promptLauncherChoice() string {
+	fmt.Println("  No Minecraft launcher detected. What would you like to do?")
+	fmt.Println("    1) Install Prism Launcher for me — portable, nothing else needed (recommended)")
+	fmt.Println("    2) Use the official Minecraft launcher — I'll install it myself")
+	fmt.Print("  Choose [1/2] (default 1): ")
+	line, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+	switch strings.TrimSpace(line) {
+	case "", "1":
+		return "prism"
+	case "2":
+		return "official"
+	default:
+		return ""
+	}
+}
+
+// guideOfficialInstall points the user at the official launcher download and asks
+// them to re-run once it's installed (we can't install the official launcher).
+func guideOfficialInstall() {
+	fmt.Println("  To use the official Minecraft launcher, install it first:")
+	fmt.Println("    https://www.minecraft.net/download")
+	switch runtime.GOOS {
+	case "windows":
+		fmt.Println("    (download the Windows installer, run it, then sign in once)")
+	case "darwin":
+		fmt.Println("    (download the macOS launcher, open it, then sign in once)")
+	default:
+		fmt.Println("    (download the Linux launcher — .deb or .tar.gz — install it, then sign in once)")
+	}
+	fmt.Println()
+	fmt.Println("  Then re-run this installer: it will detect the launcher and set up the modpack.")
 	pauseOnWindows()
 }
 
